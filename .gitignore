@@ -1,160 +1,194 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+df = pd.read_csv("Documents/Arthur/WELL-00006_20180617181315.csv") 
+df = df.drop(['timestamp', 'T-JUS-CKGL'], axis=1) 
 
-# C extensions
-*.so
+# Separar os dados
+df_class_0 = df[df['class'] == 0]
+df_class_0 = df_class_0.sample(n=3000, random_state=42)
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+df_class_107 = df[df['class'] == 107] 
+df_class_107 = df_class_107.sample(n=3000, random_state=42)
+ 
+df_class_7 = df[df['class'] == 7] 
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+df_train = pd.concat([df_class_0, df_class_107, df_class_7], ignore_index=True) 
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
+# Parâmetros para o janelamento 
+win_len = 180 
+stride = 50  
 
-# Translations
-*.mo
-*.pot
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# Listas para armazenar as janelas e os rótulos 
+x_class_0 = []
+y_class_0 = [] 
 
-# Flask stuff:
-instance/
-.webassets-cache
+for k in df_train['class'].unique(): 
 
-# Scrapy stuff:
-.scrapy
+    df_temp_2 = df_train[df_train['class'] == k] 
 
-# Sphinx documentation
-docs/_build/
+    for i in np.arange(0, len(df_temp_2)-(win_len), stride): 
 
-# PyBuilder
-.pybuilder/
-target/
+        temp = df_temp_2.iloc[i:i+win_len, :-1].values 
 
-# Jupyter Notebook
-.ipynb_checkpoints
+        temp = temp.reshape((1, -1)) 
 
-# IPython
-profile_default/
-ipython_config.py
+        print(temp) 
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+        x_class_0.append(temp) 
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+        y_class_0.append(df_temp_2.iloc[i+win_len, -1]) 
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
+x_class_0 = np.array(x_class_0) 
+x_class_0 = x_class_0.reshape((x_class_0.shape[0], x_class_0.shape[2])) 
+y_class_0 = np.array(y_class_0) 
+ 
+encoder = LabelEncoder() 
+encoder.fit(y_class_0) 
+encoded_y = encoder.transform(y_class_0) 
+OHE_y = to_categorical(encoded_y, num_classes=3) 
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
+ 
+# Seed para controlar a aleatoriedade a cada rodada de código 
+seed_value = 100 
+np.random.seed(seed_value) 
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+def extract_mean(x): 
+    return np.mean(x, axis=1) 
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+def extract_median(x): 
+    return np.median(x, axis=1) 
 
-# SageMath parsed files
-*.sage.py
+def extract_max(x): 
+    return np.max(x, axis=1) 
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+def extract_min(x): 
+    return np.min(x, axis=1) 
 
-# Spyder project settings
-.spyderproject
-.spyproject
+def extract_var(x): 
+    return np.var(x, axis=1) 
 
-# Rope project settings
-.ropeproject
+def extract_std(x): 
+    return np.std(x, axis=1) 
 
-# mkdocs documentation
-/site
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+MEAN = extract_mean(x_class_0) 
+# MEDIAN = extract_median(x_class_0) 
+# MAX = extract_max(x_class_0) 
+# MIN = extract_min(x_class_0) 
+VAR = extract_var(x_class_0) 
+# STD = extract_std(x_class_0) 
 
-# Pyre type checker
-.pyre/
+df_features = pd.DataFrame({'Mean': MEAN, 'Var': VAR}) 
+x = df_features.values 
 
-# pytype static type analyzer
-.pytype/
+x_train, x_test, y_train, y_test = train_test_split(
+    x, OHE_y, test_size=0.3, shuffle=True, random_state=seed_value) 
 
-# Cython debug symbols
-cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+ 
+def prepare_quantum_dataset(x): 
+    q = cirq.GridQubit.rect(1, len(x))  
+    ops = [cirq.ry(2* x[i]).on(q[i]) for i in range(len(x))] 
+    circuit = cirq.Circuit(ops) 
+    return circuit 
+
+x_train_q = [prepare_quantum_dataset(x) for x in x_train] 
+x_test_q = [prepare_quantum_dataset(x) for x in x_test] 
+ 
+print(x_train_q[0]) 
+SVGCircuit(x_train_q[0]) 
+
+ 
+# Definir a quantidade de camadas e qubits 
+n_layers = 1 
+qubits = 2
+
+params = sympy.symbols('a b c')   
+q = cirq.GridQubit.rect(1, qubits) 
+ops = []  
+
+ 
+for j in range(n_layers): 
+  for i in range(qubits): 
+      ops.append(cirq.ry(params[0]).on(q[i]))  
+      ops.append(cirq.rz(params[1]).on(q[i])) 
+      ops.append(cirq.ry(params[2]).on(q[i])) 
+
+  ops.append(cirq.CZ(q[0], q[1])) 
+  ops.append(cirq.CZ(q[1], q[0]))
+
+
+model_circuit = cirq.Circuit(ops) 
+SVGCircuit(model_circuit)  
+ 
+es = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', mode='max', patience = 10) 
+import time 
+start = time.time() 
+
+nn = tf.keras.Sequential([tf.keras.layers.Dense(30,activation = 'relu'), tf.keras.layers.Dense(3,activation = 'softmax')]) #sigmoid // softmax 
+
+circuit_input = tf.keras.Input(shape = (), dtype = tf.string, name = 'circuits_input') 
+
+measurement_ops = [cirq.Z(q[i]) for i in range(qubits)]  
+
+circuit_layer = tfq.layers.PQC(model_circuit, measurement_ops) 
+
+model = tf.keras.Model(inputs = circuit_input, outputs = nn(circuit_layer(circuit_input))) 
+
+optimizer = tf.keras.optimizers.Adam(learning_rate = 0.01) 
+
+model.compile(optimizer = optimizer, loss = 'categorical_crossentropy', metrics = ['accuracy'])#,'Precision','recall', 'f1score']) 
+
+history = model.fit(x = tfq.convert_to_tensor(x_train_q), y = y_train, epochs = 200, verbose = 1, validation_split = 0.2, callbacks=[es]) 
+
+ 
+# Test set evaluation 
+loss, acc = model.evaluate(tfq.convert_to_tensor(x_test_q), y_test, verbose = 2) 
+end = time.time() 
+print("Run time:", end - start) 
+
+
+# Evaluate the model on the test dataset 
+y_test_ne = np.argmax(y_test, axis = 1) 
+y_test_pred_ne = np.argmax(model.predict(tfq.convert_to_tensor(x_test_q)), axis = 1) 
+cm = confusion_matrix(y_test_ne, y_test_pred_ne) 
+print(cm) 
+
+
+# Plot the confusion matrix 
+import seaborn as sns 
+ax = sns.heatmap(cm, annot=True, cmap='Blues') 
+ax.set_title('3W Test'); 
+ax.set_xlabel('\nPredicted Label') 
+ax.set_ylabel('True Label'); 
+
+
+## Display the visualization of the Confusion Matrix. 
+plt.show() 
+
+# Classification report (test set) 
+from sklearn.metrics import classification_report 
+class_report_best = classification_report(y_pred = y_test_pred_ne , y_true = y_test_ne, digits = 4) 
+print(class_report_best) 
+runtime = end - start 
+print(runtime) 
+
+# Loss plot 
+plt.plot(history.history['loss']) 
+plt.plot(history.history['val_loss']) 
+plt.title("CWRU Classification Case Study") 
+plt.xlabel("Epochs") 
+plt.ylabel("Loss") 
+plt.legend(['train', 'validation'], loc='upper right') 
+plt.grid() 
+plt.show()
+
+# Accuracy plot 
+plt.plot(history.history['accuracy']) 
+plt.plot(history.history['val_accuracy']) 
+plt.title("CWRU Classification Case Study") 
+plt.xlabel("Epochs") 
+plt.ylabel("Accuracy") 
+plt.legend(['train', 'validation'], loc='lower right') 
+plt.grid() 
+plt.show()
